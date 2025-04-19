@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Digest for {{ date }}</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            margin: -20px -20px 20px -20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.8;
+        }
+        .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .stat-item {
+            flex: 1;
+            min-width: 120px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        .card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3498db;
+        }
+        .card.high-priority {
+            border-left: 4px solid #e74c3c;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .card-title {
+            margin: 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        .card-amount {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .card-meta-item {
+            display: flex;
+            align-items: center;
+        }
+        .card-meta-label {
+            color: #7f8c8d;
+            margin-right: 5px;
+        }
+        .priority-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #3498db;
+            color: white;
+        }
+        .priority-badge.high {
+            background-color: #e74c3c;
+        }
+        .insight-card {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #9b59b6;
+        }
+        .insight-title {
+            color: #9b59b6;
+            margin-top: 0;
+        }
+        .recommendation {
+            background-color: #e8f4fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Financial Digest</h1>
+            <p>{{ date }} | {{ advisor_name }}</p>
+        </div>
+
+        <div class="summary-box">
+            <h2>Daily Summary</h2>
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ summary_stats.total_notifications }}</div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ summary_stats.margin_calls.count }}</div>
+                    <div class="stat-label">Margin Calls</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ summary_stats.retirement_contributions.count }}</div>
+                    <div class="stat-label">Retirement</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ summary_stats.corporate_actions.count }}</div>
+                    <div class="stat-label">Corp. Actions</div>
+                </div>
+            </div>
+        </div>
+
+        {% if margin_calls %}
+        <div class="section">
+            <h2 class="section-title">Margin Calls</h2>
+            {% for call in margin_calls %}
+            <div class="card {% if call.priority >= 4 %}high-priority{% endif %}">
+                <div class="card-header">
+                    <h3 class="card-title">{{ call.client_name }}</h3>
+                    <span class="card-amount">${{ "{:,.2f}".format(call.call_amount) }}</span>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account:</span>
+                        <span>{{ call.account_number }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Due Date:</span>
+                        <span>{{ call.due_date }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Current:</span>
+                        <span>{{ call.current_margin_percentage }}%</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Required:</span>
+                        <span>{{ call.required_margin_percentage }}%</span>
+                    </div>
+                </div>
+                <div>
+                    <span class="priority-badge {% if call.priority >= 4 %}high{% endif %}">
+                        {% if call.priority >= 4 %}High Priority{% else %}Priority {{ call.priority }}{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if retirement_contributions %}
+        <div class="section">
+            <h2 class="section-title">Retirement Contributions</h2>
+            {% for contrib in retirement_contributions %}
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{{ contrib.client_name }}</h3>
+                    <span class="card-amount">${{ "{:,.2f}".format(contrib.contribution_amount) }}</span>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account:</span>
+                        <span>{{ contrib.account_number }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Type:</span>
+                        <span>{{ contrib.contribution_type }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Tax Year:</span>
+                        <span>{{ contrib.tax_year }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if corporate_actions %}
+        <div class="section">
+            <h2 class="section-title">Corporate Actions</h2>
+            {% for action in corporate_actions %}
+            <div class="card {% if action.priority >= 4 %}high-priority{% endif %}">
+                <div class="card-header">
+                    <h3 class="card-title">{{ action.client_name }}</h3>
+                    <span>{{ action.security_name }}</span>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account:</span>
+                        <span>{{ action.account_number }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Type:</span>
+                        <span>{{ action.action_type }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Deadline:</span>
+                        <span>{{ action.deadline_date }}</span>
+                    </div>
+                </div>
+                <p>{{ action.description }}</p>
+                <div>
+                    <span class="priority-badge {% if action.priority >= 4 %}high{% endif %}">
+                        {% if action.priority >= 4 %}High Priority{% else %}Priority {{ action.priority }}{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if ai_insights %}
+        <div class="section">
+            <h2 class="section-title">AI Insights</h2>
+            {% for insight in ai_insights %}
+            <div class="insight-card">
+                <h3 class="insight-title">{{ insight.title }}</h3>
+                <p>{{ insight.content }}</p>
+                {% if insight.recommendation %}
+                <div class="recommendation">
+                    <strong>Recommendation:</strong> {{ insight.recommendation }}
+                </div>
+                {% endif %}
+                {% if insight.related_clients %}
+                <p><small><strong>Related clients:</strong> {{ insight.related_clients|join(', ') }}</small></p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            <p>This is an automated digest email. Please do not reply to this email.</p>
+            <p>&copy; {{ current_year }} Financial Digest Emailer</p>
+        </div>
+    </div>
+</body>
+</html>

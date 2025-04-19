@@ -1,0 +1,15 @@
+flowchart TD
+    A[Email Data Sources<br/>(JSON, Margin Calls,<br/>Retirement, Corp. Actions)] -->|Batch Upload/API| B[Email Processor<br/>(email_processor.py)]
+    B --> C[Recipient Grouper<br/>(by Advisor)]
+    C --> D[Digest Builder<br/>(digest_builder.py)]
+    D --> E[AI Insights<br/>(ai_insights.py)]
+    E --> F[Email Formatter<br/>(Jinja2 HTML Template)]
+    F --> G[Email Sender<br/>(email_sender.py)]
+    G --> H[SMTP Server<br/>(Gmail, etc.)]
+    H --> I[Advisor Inbox<br/>(Receives Digest Email)]
+
+    subgraph " "
+        J[Storage<br/>(Processed Data,<br/>Digest History,<br/>Templates)]
+    end
+    D -- Save/Load --> J
+    F -- Use Template --> J

@@ -1,0 +1,118 @@
+{
+  "emails": [
+    {
+      "id": "email1",
+      "type": "margin_call",
+      "subject": "Urgent: Margin Call Notice",
+      "body": "This is to inform you that your client's account has fallen below the required margin level. Immediate action is required.",
+      "recipient_id": "A001",
+      "recipient_email": "gunaconfid@gmail.com",
+      "client_id": "C001",
+      "client_name": "Alice Johnson",
+      "timestamp": "2025-04-18T10:00:00Z",
+      "metadata": {
+        "account_number": "ACC123456",
+        "call_amount": 15000.00,
+        "due_date": "2025-04-20",
+        "current_margin_percentage": 15.5,
+        "required_margin_percentage": 25.0
+      },
+      "priority": 5
+    },
+    {
+      "id": "email2",
+      "type": "margin_call",
+      "subject": "Margin Call Notification",
+      "body": "This is to inform you that your client's account requires additional funds to meet margin requirements.",
+      "recipient_id": "A001",
+      "recipient_email": "gunaconfid@gmail.com",
+      "client_id": "C002",
+      "client_name": "Bob Williams",
+      "timestamp": "2025-04-18T10:30:00Z",
+      "metadata": {
+        "account_number": "ACC234567",
+        "call_amount": 8500.00,
+        "due_date": "2025-04-21",
+        "current_margin_percentage": 18.2,
+        "required_margin_percentage": 25.0
+      },
+      "priority": 4
+    },
+    {
+      "id": "email3",
+      "type": "retirement_contribution",
+      "subject": "Retirement Contribution Confirmation",
+      "body": "This is to confirm a retirement contribution has been made to your client's account.",
+      "recipient_id": "A001",
+      "recipient_email": "gunaconfid@gmail.com",
+      "client_id": "C003",
+      "client_name": "Carol Martinez",
+      "timestamp": "2025-04-18T11:00:00Z",
+      "metadata": {
+        "account_number": "ACC345678",
+        "contribution_amount": 6000.00,
+        "contribution_type": "Traditional IRA",
+        "tax_year": 2025
+      },
+      "priority": 3
+    },
+    {
+      "id": "email4",
+      "type": "retirement_contribution",
+      "subject": "401(k) Contribution Processed",
+      "body": "This is to inform you that a 401(k) contribution has been processed for your client.",
+      "recipient_id": "A001",
+      "recipient_email": "gunaconfid@gmail.com",
+      "client_id": "C004",
+      "client_name": "David Wilson",
+      "timestamp": "2025-04-18T11:15:00Z",
+      "metadata": {
+        "account_number": "ACC456789",
+        "contribution_amount": 4500.00,
+        "contribution_type": "401(k)",
+        "tax_year": 2025
+      },
+      "priority": 2
+    },
+    {
+      "id": "email5",
+      "type": "corporate_action",
+      "subject": "Urgent: Corporate Action Required",
+      "body": "This is to inform you of a corporate action requiring immediate attention for your client's holdings.",
+      "recipient_id": "A001",
+      "recipient_email": "gunaconfid@gmail.com",
+      "client_id": "C001",
+      "client_name": "Alice Johnson",
+      "timestamp": "2025-04-18T12:00:00Z",
+      "metadata": {
+        "account_number": "ACC123456",
+        "security_id": "TSLA",
+        "security_name": "Tesla Inc.",
+        "action_type": "stock split",
+        "deadline_date": "2025-04-25",
+        "description": "3-for-1 stock split requiring shareholder approval. Voting deadline approaching."
+      },
+      "priority": 4
+    },
+    {
+      "id": "email6",
+      "type": "corporate_action",
+      "subject": "Corporate Action Notification",
+      "body": "This is to inform you of a corporate action affecting your client's portfolio.",
+      "recipient_id": "A001",
+      "recipient_email": "gunaconfid@gmail.com",
+      "client_id": "C005",
+      "client_name": "Emma Brown",
+      "timestamp": "2025-04-18T12:30:00Z",
+      "metadata": {
+        "account_number": "ACC567890",
+        "security_id": "AAPL",
+        "security_name": "Apple Inc.",
+        "action_type": "dividend",
+        "deadline_date": "2025-04-30",
+        "description": "Quarterly dividend payment of $0.24 per share. Reinvestment options available."
+      },
+      "priority": 3
+    }
+  ]
+}
