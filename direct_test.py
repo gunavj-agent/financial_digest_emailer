@@ -27,13 +27,14 @@ logger = logging.getLogger("direct_test")
 # Load environment variables
 load_dotenv()
 
-# Explicitly set environment variables
-os.environ["ANTHROPIC_API_KEY"] = "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"
-os.environ["SMTP_SERVER"] = "smtp.gmail.com"
-os.environ["SMTP_PORT"] = "587"
-os.environ["SMTP_USERNAME"] = "gunasekaran@gmail.com"
-os.environ["SMTP_PASSWORD"] = "yashviguna@86"
-os.environ["EMAIL_FROM"] = "gunaconfid@gmail.com"
+# Environment variables should be loaded from .env file
+# Make sure to create a .env file with the following variables:
+# ANTHROPIC_API_KEY=your_api_key
+# SMTP_SERVER=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USERNAME=your_email@gmail.com
+# SMTP_PASSWORD=your_app_password
+# EMAIL_FROM=your_sender_email@gmail.com
 
 # Print environment variables for debugging
 logger.info(f"ANTHROPIC_API_KEY set: {os.environ.get('ANTHROPIC_API_KEY') is not None}")

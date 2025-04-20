@@ -8,11 +8,14 @@ from .models import AdvisorDigest, AIInsight
 
 logger = logging.getLogger("financial_digest")
 
-# Initialize Anthropic client - directly set API key
-ANTHROPIC_API_KEY = "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"
+# Get Anthropic API key from environment variable
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # Log API key status
-logger.info(f"Using Anthropic API key: {ANTHROPIC_API_KEY[:10]}...")
+if ANTHROPIC_API_KEY:
+    logger.info(f"Using Anthropic API key: {ANTHROPIC_API_KEY[:10]}...")
+else:
+    logger.warning("ANTHROPIC_API_KEY not set in environment variables")
     
 # Initialize client with API key
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)

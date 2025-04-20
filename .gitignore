@@ -1,0 +1,55 @@
+# Environment variables
+.env
+# Allow .env.example but ignore other .env files
+.env.[^e].*
+.env.e[^x].*
+.env.ex[^a].*
+.env.exa[^m].*
+.env.exam[^p].*
+.env.examp[^l].*
+.env.exampl[^e].*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs
+logs/
+*.log
+
+# Virtual Environment
+venv/
+ENV/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
