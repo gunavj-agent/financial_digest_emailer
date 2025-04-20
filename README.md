@@ -8,9 +8,11 @@ A system that processes multiple financial email notifications, organizes them b
   - Margin calls
   - Retirement contributions
   - Voluntary corporate actions
+  - Outgoing account transfers
 - **Recipient Organization**: Groups notifications by Financial Advisor
 - **Daily Digest Creation**: Generates consolidated daily email digests
-- **AI-powered Insights**: Uses Claude Sonnet to provide intelligent summaries and recommendations
+- **AI-powered Insights**: Uses Claude to provide intelligent summaries and recommendations
+- **Executive Summaries**: AI-generated concise overviews of the most important information
 - **Email Delivery**: Sends formatted HTML emails to recipients
 - **Secure Authentication**: API endpoints protected with authentication
 
@@ -18,32 +20,53 @@ A system that processes multiple financial email notifications, organizes them b
 
 ### System Overview
 
+```mermaid
+flowchart TD
+    A[Email Data Sources<br/>(JSON, Margin Calls, Retirement,<br/>Corp. Actions, Outgoing Transfers)] -->|Batch Upload/API| B[Email Processor<br/>(email_processor.py)]
+    B --> C[Recipient Grouper<br/>(by Advisor)]
+    C --> D[Digest Builder<br/>(digest_builder.py)]
+    
+    subgraph "AI Processing"
+        E1[AI Executive Summary<br/>(generate_executive_summary)]
+        E2[AI Insights<br/>(generate_insights)]
+    end
+    
+    D --> E1
+    D --> E2
+    
+    E1 --> F[Email Formatter<br/>(Jinja2 HTML Template)]
+    E2 --> F
+    
+    F --> G[Email Sender<br/>(email_sender.py)]
+    G -->|SMTP| H[Email Server<br/>(Gmail: smtp.gmail.com)]
+    H --> I[Advisor Inbox<br/>(Financial Advisor)]
+
+    subgraph "Environment & Storage"
+        J1[.env File<br/>(API Keys, SMTP Credentials)]
+        J2[Storage<br/>(Processed Data,<br/>Digest History)]
+        J3[Templates<br/>(base_digest.html)]
+    end
+    
+    J1 -.->|Config| B
+    J1 -.->|Config| E1
+    J1 -.->|Config| E2
+    J1 -.->|Config| G
+    
+    D -- Save/Load --> J2
+    F -- Use Template --> J3
+    
+    classDef newFeature fill:#f9f,stroke:#333,stroke-width:2px;
+    class E1,A newFeature;
 ```
-+-------------------+        +----------------------+        +-------------------+
-|    Data Sources   |        |     Core System      |        |    Delivery       |
-+-------------------+        +----------------------+        +-------------------+
-| - JSON Email Data | -----> | - Data Processor     | -----> | - Email Formatter |
-| - Margin Calls    |        | - Recipient Grouper  |        | - HTML Templates  |
-| - Retirement      |        | - AI Insights        |        | - SMTP Delivery   |
-| - Corp. Actions   |        | - Digest Builder     |        |                   |
-+-------------------+        +----------------------+        +-------------------+
-                                       |
-                                       v
-                             +----------------------+
-                             |       Storage        |
-                             +----------------------+
-                             | - Processed Data     |
-                             | - Digest History     |
-                             | - Email Templates    |
-                             +----------------------+
-```
+
+*Note: Highlighted in pink are the new features added to the system.*
 
 ## 🔧 Setup & Installation
 
 ### Prerequisites
 - Python 3.9+
-- Anthropic API Key (for Claude Sonnet)
-- SMTP server access for sending emails
+- Anthropic API Key (for Claude)
+- SMTP server access for sending emails (configured for Gmail by default)
 
 ### Installation
 
