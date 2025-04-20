@@ -27,14 +27,13 @@ logger = logging.getLogger("direct_test")
 # Load environment variables
 load_dotenv()
 
-# Environment variables should be loaded from .env file
-# Make sure to create a .env file with the following variables:
-# ANTHROPIC_API_KEY=your_api_key
-# SMTP_SERVER=smtp.gmail.com
-# SMTP_PORT=587
-# SMTP_USERNAME=your_email@gmail.com
-# SMTP_PASSWORD=your_app_password
-# EMAIL_FROM=your_sender_email@gmail.com
+# Explicitly set environment variables for testing
+os.environ["ANTHROPIC_API_KEY"] = "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"
+os.environ["SMTP_SERVER"] = "smtp.gmail.com"
+os.environ["SMTP_PORT"] = "587"
+os.environ["SMTP_USERNAME"] = "gunasekaran.jayagopal@gmail.com"
+os.environ["SMTP_PASSWORD"] = "whoa dpvo vyys dvlu"
+os.environ["EMAIL_FROM"] = "gunaconfid@gmail.com"
 
 # Print environment variables for debugging
 logger.info(f"ANTHROPIC_API_KEY set: {os.environ.get('ANTHROPIC_API_KEY') is not None}")
@@ -74,8 +73,9 @@ async def test_workflow():
         # Update the advisor email to match the one in .env
         digest.advisor_email = "gunaconfid@gmail.com"
         logger.info(f"Built digest with {len(digest.margin_calls)} margin calls, "
-                   f"{len(digest.retirement_contributions)} retirement contributions, and "
-                   f"{len(digest.corporate_actions)} corporate actions")
+                   f"{len(digest.retirement_contributions)} retirement contributions, "
+                   f"{len(digest.corporate_actions)} corporate actions, and "
+                   f"{len(digest.outgoing_account_transfers)} outgoing account transfers")
         
         # Step 4: Generate AI insights
         logger.info("Generating AI insights...")

@@ -163,6 +163,13 @@
             <p>{{ date }} | {{ advisor_name }}</p>
         </div>
 
+        {% if executive_summary %}
+        <div class="summary-box" style="background-color: #f0f7ff; border-left: 4px solid #2980b9;">
+            <h2 style="color: #2980b9;">Executive Summary</h2>
+            <p>{{ executive_summary }}</p>
+        </div>
+        {% endif %}
+
         <div class="summary-box">
             <h2>Daily Summary</h2>
             <div class="summary-stats">
@@ -181,6 +188,10 @@
                 <div class="stat-item">
                     <div class="stat-number">{{ summary_stats.corporate_actions.count }}</div>
                     <div class="stat-label">Corp. Actions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ summary_stats.outgoing_account_transfers.count }}</div>
+                    <div class="stat-label">Transfers</div>
                 </div>
             </div>
         </div>
@@ -277,6 +288,54 @@
                 <div>
                     <span class="priority-badge {% if action.priority >= 4 %}high{% endif %}">
                         {% if action.priority >= 4 %}High Priority{% else %}Priority {{ action.priority }}{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if outgoing_account_transfers %}
+        <div class="section">
+            <h2 class="section-title">Outgoing Account Transfers</h2>
+            {% for transfer in outgoing_account_transfers %}
+            <div class="card {% if transfer.priority >= 4 %}high-priority{% endif %}">
+                <div class="card-header">
+                    <h3 class="card-title">{{ transfer.client_name }}</h3>
+                    <span class="card-amount">${{ "{:,.2f}".format(transfer.net_amount) }}</span>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account:</span>
+                        <span>{{ transfer.account_number }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account Type:</span>
+                        <span>{{ transfer.account_type }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Transfer Type:</span>
+                        <span>{{ transfer.transfer_type }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Status:</span>
+                        <span>{{ transfer.status }}</span>
+                    </div>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Entry Date:</span>
+                        <span>{{ transfer.entry_date }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Payment Date:</span>
+                        <span>{{ transfer.payment_date }}</span>
+                    </div>
+                </div>
+                <p>{{ transfer.description }}</p>
+                <div>
+                    <span class="priority-badge {% if transfer.priority >= 4 %}high{% endif %}">
+                        {% if transfer.priority >= 4 %}High Priority{% else %}Priority {{ transfer.priority }}{% endif %}
                     </span>
                 </div>
             </div>

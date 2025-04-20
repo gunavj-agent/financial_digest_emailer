@@ -7,6 +7,7 @@ class EmailType(str, Enum):
     MARGIN_CALL = "margin_call"
     RETIREMENT_CONTRIBUTION = "retirement_contribution"
     CORPORATE_ACTION = "corporate_action"
+    OUTGOING_ACCOUNT_TRANSFER = "outgoing account transfer"
 
 class EmailNotification(BaseModel):
     """Model for a single email notification"""
@@ -20,7 +21,7 @@ class EmailNotification(BaseModel):
     client_name: str
     timestamp: datetime
     metadata: Dict[str, Any] = {}
-    priority: int = Field(1, ge=1, le=5)  # 1-5 priority level (5 is highest)
+    priority: int = Field(1, ge=1, le=10)  # 1-10 priority level (10 is highest)
 
 class EmailData(BaseModel):
     """Model for the incoming batch of email notifications"""
@@ -65,13 +66,30 @@ class CorporateAction(BaseModel):
     timestamp: datetime
     priority: int = 4  # Default medium-high priority
 
+class OutgoingAccountTransfer(BaseModel):
+    """Model for outgoing account transfer notifications"""
+    id: str
+    client_id: str
+    client_name: str
+    account_number: str
+    account_type: str
+    net_amount: float
+    gross_amount: float
+    transfer_type: str  # e.g., "ACH", "Wire", etc.
+    entry_date: date
+    payment_date: date
+    status: str
+    description: str
+    timestamp: datetime
+    priority: int = 5  # Default high priority
+
 class AIInsight(BaseModel):
     """Model for AI-generated insights"""
     title: str
     content: str
     recommendation: Optional[str] = None
     related_clients: List[str] = []
-    priority: int = Field(1, ge=1, le=5)
+    priority: int = Field(1, ge=1, le=10)
 
 class AdvisorDigest(BaseModel):
     """Model for a complete advisor digest"""
@@ -82,6 +100,7 @@ class AdvisorDigest(BaseModel):
     margin_calls: List[MarginCall] = []
     retirement_contributions: List[RetirementContribution] = []
     corporate_actions: List[CorporateAction] = []
+    outgoing_account_transfers: List[OutgoingAccountTransfer] = []
     ai_insights: List[AIInsight] = []
     summary_stats: Dict[str, Any] = {}
     
@@ -93,6 +112,9 @@ class AdvisorDigest(BaseModel):
                 return True
         for action in self.corporate_actions:
             if action.priority >= 4:
+                return True
+        for transfer in self.outgoing_account_transfers:
+            if transfer.priority >= 4:
                 return True
         return False
 

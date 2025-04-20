@@ -9,7 +9,8 @@ from .models import (
     EmailType,
     MarginCall,
     RetirementContribution,
-    CorporateAction
+    CorporateAction,
+    OutgoingAccountTransfer
 )
 
 logger = logging.getLogger("financial_digest")
@@ -39,6 +40,8 @@ def process_emails(email_data: EmailData) -> Dict[str, Dict[str, List[Any]]]:
             notification = _convert_to_retirement_contribution(email)
         elif email.type == EmailType.CORPORATE_ACTION:
             notification = _convert_to_corporate_action(email)
+        elif email.type == EmailType.OUTGOING_ACCOUNT_TRANSFER:
+            notification = _convert_to_outgoing_account_transfer(email)
         else:
             logger.warning(f"Unknown email type: {email.type}")
             continue
@@ -103,6 +106,27 @@ def _convert_to_corporate_action(email: EmailNotification) -> CorporateAction:
         security_name=metadata.get("security_name", ""),
         action_type=metadata.get("action_type", ""),
         deadline_date=datetime.fromisoformat(metadata.get("deadline_date", datetime.now().isoformat())).date(),
+        description=metadata.get("description", ""),
+        timestamp=email.timestamp,
+        priority=email.priority
+    )
+
+def _convert_to_outgoing_account_transfer(email: EmailNotification) -> OutgoingAccountTransfer:
+    """Convert generic email notification to OutgoingAccountTransfer model"""
+    metadata = email.metadata
+    
+    return OutgoingAccountTransfer(
+        id=email.id,
+        client_id=email.client_id,
+        client_name=email.client_name,
+        account_number=metadata.get("account_number", ""),
+        account_type=metadata.get("account_type", ""),
+        net_amount=float(metadata.get("net_amount", 0)),
+        gross_amount=float(metadata.get("gross_amount", 0)),
+        transfer_type=metadata.get("transfer_type", ""),
+        entry_date=datetime.fromisoformat(metadata.get("entry_date", datetime.now().isoformat())).date(),
+        payment_date=datetime.fromisoformat(metadata.get("payment_date", datetime.now().isoformat())).date(),
+        status=metadata.get("status", ""),
         description=metadata.get("description", ""),
         timestamp=email.timestamp,
         priority=email.priority

@@ -9,6 +9,7 @@ import jinja2
 from dotenv import load_dotenv
 
 from .models import AdvisorDigest, EmailDeliveryResult
+from .ai_insights import generate_executive_summary
 
 # Configure logging
 logger = logging.getLogger("financial_digest")
@@ -129,6 +130,9 @@ def _generate_html_content(digest: AdvisorDigest) -> str:
         # Load base template
         template = template_env.get_template("base_digest.html")
         
+        # Generate executive summary using Claude
+        executive_summary = generate_executive_summary(digest)
+        
         # Render template with digest data
         html_content = template.render(
             advisor_name=digest.advisor_name,
@@ -136,10 +140,12 @@ def _generate_html_content(digest: AdvisorDigest) -> str:
             margin_calls=digest.margin_calls,
             retirement_contributions=digest.retirement_contributions,
             corporate_actions=digest.corporate_actions,
+            outgoing_account_transfers=digest.outgoing_account_transfers,
             ai_insights=digest.ai_insights,
             summary_stats=digest.summary_stats,
             has_high_priority=digest.has_high_priority,
-            current_year=datetime.now().year
+            current_year=datetime.now().year,
+            executive_summary=executive_summary
         )
         
         return html_content
@@ -173,6 +179,10 @@ def _generate_fallback_html(digest: AdvisorDigest) -> str:
             <p>Margin calls: {len(digest.margin_calls)}</p>
             <p>Retirement contributions: {len(digest.retirement_contributions)}</p>
             <p>Corporate actions: {len(digest.corporate_actions)}</p>
+            <p>Outgoing account transfers: {len(digest.outgoing_account_transfers)}</p>
+            
+            <!-- Generate executive summary if possible -->
+            {generate_executive_summary(digest) if 'generate_executive_summary' in globals() else ''}
         </div>
     """
     
@@ -227,6 +237,28 @@ def _generate_fallback_html(digest: AdvisorDigest) -> str:
                 <p>Action type: {action.action_type}</p>
                 <p>Deadline: {action.deadline_date}</p>
                 <p>{action.description}</p>
+            </div>
+            """
+        html += "</div>"
+    
+    # Add outgoing account transfers section
+    if digest.outgoing_account_transfers:
+        html += f"""
+        <div class="section">
+            <h2>Outgoing Account Transfers</h2>
+        """
+        for transfer in digest.outgoing_account_transfers:
+            priority_class = "high-priority" if transfer.priority >= 4 else ""
+            html += f"""
+            <div class="{priority_class}">
+                <h3>{transfer.client_name} - ${transfer.net_amount:,.2f}</h3>
+                <p>Account: {transfer.account_number}</p>
+                <p>Account Type: {transfer.account_type}</p>
+                <p>Transfer Type: {transfer.transfer_type}</p>
+                <p>Status: {transfer.status}</p>
+                <p>Entry Date: {transfer.entry_date}</p>
+                <p>Payment Date: {transfer.payment_date}</p>
+                <p>{transfer.description}</p>
             </div>
             """
         html += "</div>"

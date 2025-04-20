@@ -17,7 +17,7 @@
         "current_margin_percentage": 15.5,
         "required_margin_percentage": 25.0
       },
-      "priority": 5
+      "priority": 2
     },
     {
       "id": "email2",
@@ -36,7 +36,7 @@
         "current_margin_percentage": 18.2,
         "required_margin_percentage": 25.0
       },
-      "priority": 4
+      "priority": 3
     },
     {
       "id": "email3",
@@ -54,7 +54,7 @@
         "contribution_type": "Traditional IRA",
         "tax_year": 2025
       },
-      "priority": 3
+      "priority": 4
     },
     {
       "id": "email4",
@@ -72,7 +72,7 @@
         "contribution_type": "401(k)",
         "tax_year": 2025
       },
-      "priority": 2
+      "priority": 5
     },
     {
       "id": "email5",
@@ -92,7 +92,7 @@
         "deadline_date": "2025-04-25",
         "description": "3-for-1 stock split requiring shareholder approval. Voting deadline approaching."
       },
-      "priority": 4
+      "priority": 6
     },
     {
       "id": "email6",
@@ -105,14 +105,37 @@
       "client_name": "Emma Brown",
       "timestamp": "2025-04-18T12:30:00Z",
       "metadata": {
-        "account_number": "ACC567890",
+        "account_number": "ACC567888",
         "security_id": "AAPL",
         "security_name": "Apple Inc.",
         "action_type": "dividend",
         "deadline_date": "2025-04-30",
         "description": "Quarterly dividend payment of $0.24 per share. Reinvestment options available."
       },
-      "priority": 3
+      "priority": 7
+    },
+    {
+      "id": "email7",
+      "type": "outgoing account transfer",
+      "subject": "Outoing ACH - Next 5 days buiness Days - Review Required",
+      "body": "This is to inform you about Outgoing payment failure due to insufficient funds. Please review and take necessary actions.",
+      "recipient_id": "A001",
+      "recipient_email": "gunaconfid@gmail.com",
+      "client_id": "C005",
+      "client_name": "Emma Brown",
+      "timestamp": "2025-04-18T12:30:00Z",
+      "metadata": {
+        "account_number": "ACC567888",
+        "account_type": "TFR on Death Indiv",
+        "net_amount": 10000.00,
+        "gross_amount": 10000.00,
+        "transfer_type": "ACH",
+        "entry_date": "2024-07-20",
+        "payment_date": "2024-07-28",
+        "status":"Next 5 business days - Review Required",
+        "description": "Outgoing payment failure due to insufficient funds. Please review and take necessary actions."
+      },
+      "priority": 1
     }
   ]
 }

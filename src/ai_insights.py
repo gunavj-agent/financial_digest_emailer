@@ -8,17 +8,82 @@ from .models import AdvisorDigest, AIInsight
 
 logger = logging.getLogger("financial_digest")
 
-# Get Anthropic API key from environment variable
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+# Initialize client variable
+client = None
 
-# Log API key status
-if ANTHROPIC_API_KEY:
-    logger.info(f"Using Anthropic API key: {ANTHROPIC_API_KEY[:10]}...")
-else:
-    logger.warning("ANTHROPIC_API_KEY not set in environment variables")
+def _initialize_client():
+    """Initialize the Anthropic client with API key from environment variables"""
+    global client
     
-# Initialize client with API key
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    # Get Anthropic API key from environment variable
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    
+    # Log API key status
+    if api_key:
+        logger.info(f"Using Anthropic API key: {api_key[:10]}...")
+        client = anthropic.Anthropic(api_key=api_key)
+        return True
+    else:
+        logger.warning("ANTHROPIC_API_KEY not set in environment variables")
+        return False
+
+def generate_executive_summary(digest: AdvisorDigest) -> str:
+    """
+    Generate an executive summary of the digest using Claude Sonnet
+    
+    Args:
+        digest: The advisor digest to analyze
+        
+    Returns:
+        A concise executive summary as a string
+    """
+    # Initialize client if needed
+    if not client and not _initialize_client():
+        logger.warning("ANTHROPIC_API_KEY not set, skipping executive summary generation")
+        return ""
+    
+    logger.info(f"Generating executive summary for advisor {digest.advisor_id}")
+    
+    try:
+        # Create a summary of the digest for Claude
+        digest_summary = _create_digest_summary(digest)
+        
+        # Create the prompt for Claude
+        prompt = _create_executive_summary_prompt(digest.advisor_name, digest_summary)
+        
+        try:
+            # Send the prompt to Claude
+            message = client.messages.create(
+                model="claude-3-opus-20240229",  # Try with this model first
+                max_tokens=500,
+                temperature=0.3,
+                system="You are a professional financial advisor assistant that specializes in creating concise executive summaries.",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+        except Exception as e:
+            logger.warning(f"Error with first model attempt: {str(e)}. Trying with claude-3-haiku.")
+            # Try with a different model
+            message = client.messages.create(
+                model="claude-3-haiku-20240307",
+                max_tokens=500,
+                temperature=0.3,
+                system="You are a professional financial advisor assistant that specializes in creating concise executive summaries.",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+        
+        # Extract the summary from the response
+        summary = message.content[0].text
+        logger.info(f"Generated executive summary for advisor {digest.advisor_id}")
+        return summary
+        
+    except Exception as e:
+        logger.error(f"Error generating executive summary: {str(e)}")
+        # Fallback to a generic summary
+        return f"Daily digest for {digest.date} with {digest.summary_stats['total_notifications']} notifications requiring your attention."
 
 def generate_insights(digest: AdvisorDigest) -> List[AIInsight]:
     """
@@ -30,7 +95,8 @@ def generate_insights(digest: AdvisorDigest) -> List[AIInsight]:
     Returns:
         List of AIInsight objects
     """
-    if not ANTHROPIC_API_KEY:
+    # Initialize client if needed
+    if not client and not _initialize_client():
         logger.warning("ANTHROPIC_API_KEY not set, skipping AI insights generation")
         return []
     
@@ -140,10 +206,47 @@ def _create_digest_summary(digest: AdvisorDigest) -> Dict[str, Any]:
             }
             for action in digest.corporate_actions
         ],
+        "outgoing_account_transfers": [
+            {
+                "client_name": transfer.client_name,
+                "account_number": transfer.account_number,
+                "account_type": transfer.account_type,
+                "net_amount": transfer.net_amount,
+                "gross_amount": transfer.gross_amount,
+                "transfer_type": transfer.transfer_type,
+                "entry_date": str(transfer.entry_date),
+                "payment_date": str(transfer.payment_date),
+                "status": transfer.status,
+                "description": transfer.description,
+                "priority": transfer.priority
+            }
+            for transfer in digest.outgoing_account_transfers
+        ],
         "summary_stats": digest.summary_stats
     }
     
     return summary
+
+def _create_executive_summary_prompt(advisor_name: str, digest_summary: Dict[str, Any]) -> str:
+    """Create the prompt for generating an executive summary"""
+    prompt = f"""
+    Hello! I need your help creating a concise executive summary for advisor {advisor_name}'s daily financial digest.
+    
+    Here's the digest data in JSON format:
+    
+    {json.dumps(digest_summary, indent=2)}
+    
+    Please write a brief, professional executive summary (3-5 sentences) that highlights:
+    1. The total number of notifications and their breakdown by type
+    2. Any high-priority items that need immediate attention (especially margin calls or outgoing transfers)
+    3. Key deadlines or time-sensitive actions
+    4. The most significant financial implications
+    
+    Make the summary personalized, addressing {advisor_name} directly. Focus on actionable information and use a professional, concise tone suitable for a busy financial advisor.
+    
+    Do not format as JSON, just provide the summary as plain text.
+    """
+    return prompt
 
 def _create_claude_prompt(advisor_name: str, digest_summary: Dict[str, Any]) -> str:
     """Create the prompt for Claude"""
@@ -157,11 +260,13 @@ def _create_claude_prompt(advisor_name: str, digest_summary: Dict[str, Any]) -> 
     Based on this data, please provide:
     
     1. 2-3 key insights about the advisor's clients and their financial situations
-    2. Specific recommendations for the advisor to take action on
-    3. Any patterns or trends you notice across the different notification types
-    4. Highlight any potential risks or compliance issues and suggest ways to address them.
-5. Support your insights with specific numbers or trends from the data whenever possible.
-6. Write each insight and recommendation clearly and concisely.
+    2. Specific recommendations for the advisor to take action on, especially regarding any outgoing account transfers that need attention
+    3. Any patterns or trends you notice across the different notification types (margin calls, retirement contributions, corporate actions, and outgoing account transfers)
+    4. Highlight any potential risks or compliance issues and suggest ways to address them, particularly for high-priority outgoing account transfers
+    5. Support your insights with specific numbers or trends from the data whenever possible
+    6. Write each insight and recommendation clearly and concisely
+    
+    IMPORTANT: Make sure to include at least one insight specifically about the outgoing account transfers if any are present, especially those with status "Next 5 business days - Review Required" or any high-priority transfers.
     
     Format your response as a JSON array with the following structure for each insight:
     
@@ -171,7 +276,7 @@ def _create_claude_prompt(advisor_name: str, digest_summary: Dict[str, Any]) -> 
         "content": "Detailed explanation of the insight",
         "recommendation": "Specific action the advisor should take",
         "related_clients": ["List of client names this relates to"],
-        "priority": priority_level (1-5, with 5 being highest)
+        "priority": priority_level (1-10, with 10 being highest)
       }},
       ...
     ]

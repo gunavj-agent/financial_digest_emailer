@@ -7,7 +7,8 @@ from .models import (
     AdvisorDigest,
     MarginCall,
     RetirementContribution,
-    CorporateAction
+    CorporateAction,
+    OutgoingAccountTransfer
 )
 
 logger = logging.getLogger("financial_digest")
@@ -78,13 +79,18 @@ def build_digest(advisor_id: str, digest_date: date) -> AdvisorDigest:
         # Add corporate actions
         if "corporate_action" in advisor_notifications:
             digest.corporate_actions = advisor_notifications["corporate_action"]
+            
+        # Add outgoing account transfers
+        if "outgoing account transfer" in advisor_notifications:
+            digest.outgoing_account_transfers = advisor_notifications["outgoing account transfer"]
     
     # Generate summary statistics
     digest.summary_stats = _generate_summary_stats(digest)
     
     logger.info(f"Built digest for advisor {advisor_id} with {len(digest.margin_calls)} margin calls, "
-                f"{len(digest.retirement_contributions)} retirement contributions, and "
-                f"{len(digest.corporate_actions)} corporate actions")
+                f"{len(digest.retirement_contributions)} retirement contributions, "
+                f"{len(digest.corporate_actions)} corporate actions, and "
+                f"{len(digest.outgoing_account_transfers)} outgoing account transfers")
     
     return digest
 
@@ -94,7 +100,8 @@ def _generate_summary_stats(digest: AdvisorDigest) -> Dict[str, Any]:
         "total_notifications": (
             len(digest.margin_calls) + 
             len(digest.retirement_contributions) + 
-            len(digest.corporate_actions)
+            len(digest.corporate_actions) +
+            len(digest.outgoing_account_transfers)
         ),
         "margin_calls": {
             "count": len(digest.margin_calls),
@@ -109,6 +116,12 @@ def _generate_summary_stats(digest: AdvisorDigest) -> Dict[str, Any]:
             "count": len(digest.corporate_actions),
             "by_type": defaultdict(int)
         },
+        "outgoing_account_transfers": {
+            "count": len(digest.outgoing_account_transfers),
+            "total_amount": sum(transfer.net_amount for transfer in digest.outgoing_account_transfers),
+            "by_status": defaultdict(int),
+            "high_priority_count": sum(1 for transfer in digest.outgoing_account_transfers if transfer.priority >= 4)
+        },
         "has_high_priority": digest.has_high_priority
     }
     
@@ -116,8 +129,13 @@ def _generate_summary_stats(digest: AdvisorDigest) -> Dict[str, Any]:
     for action in digest.corporate_actions:
         stats["corporate_actions"]["by_type"][action.action_type] += 1
     
-    # Convert defaultdict to regular dict for serialization
+    # Count outgoing account transfers by status
+    for transfer in digest.outgoing_account_transfers:
+        stats["outgoing_account_transfers"]["by_status"][transfer.status] += 1
+    
+    # Convert defaultdicts to regular dicts for serialization
     stats["corporate_actions"]["by_type"] = dict(stats["corporate_actions"]["by_type"])
+    stats["outgoing_account_transfers"]["by_status"] = dict(stats["outgoing_account_transfers"]["by_status"])
     
     return stats
 
