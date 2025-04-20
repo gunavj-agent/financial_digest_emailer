@@ -2,9 +2,12 @@ import os
 import logging
 import json
 from typing import List, Dict, Any
-import anthropic
+from datetime import datetime
 
-from .models import AdvisorDigest, AIInsight
+from anthropic import Anthropic
+
+from src.models import AdvisorDigest, AIInsight
+from src.data_masking import mask_sensitive_data
 
 logger = logging.getLogger("financial_digest")
 
@@ -21,49 +24,42 @@ def _initialize_client():
     # Log API key status
     if api_key:
         logger.info(f"Using Anthropic API key: {api_key[:10]}...")
-        client = anthropic.Anthropic(api_key=api_key)
+        client = Anthropic(api_key=api_key)
         return True
     else:
         logger.warning("ANTHROPIC_API_KEY not set in environment variables")
         return False
 
 def generate_executive_summary(digest: AdvisorDigest) -> str:
-    """
-    Generate an executive summary of the digest using Claude Sonnet
+    """Generate an executive summary for the digest"""
+    logger.info(f"Generating executive summary for advisor {digest.advisor_id}")
     
-    Args:
-        digest: The advisor digest to analyze
-        
-    Returns:
-        A concise executive summary as a string
-    """
     # Initialize client if needed
     if not client and not _initialize_client():
         logger.warning("ANTHROPIC_API_KEY not set, skipping executive summary generation")
-        return ""
+        return f"Daily digest for {digest.date} with {digest.summary_stats['total_notifications']} notifications requiring your attention."
     
-    logger.info(f"Generating executive summary for advisor {digest.advisor_id}")
+    # Create a summary of the digest for AI processing
+    digest_summary = _create_digest_summary(digest)
+    # Note: digest_summary is already masked by _create_digest_summary
     
+    # Create the prompt
+    prompt = _create_executive_summary_prompt(digest.advisor_name, digest_summary)
+        
     try:
-        # Create a summary of the digest for Claude
-        digest_summary = _create_digest_summary(digest)
-        
-        # Create the prompt for Claude
-        prompt = _create_executive_summary_prompt(digest.advisor_name, digest_summary)
-        
+        # Send the prompt to Claude
+        message = client.messages.create(
+            model="claude-3-opus-20240229",  # Try with this model first
+            max_tokens=500,
+            temperature=0.3,
+            system="You are a professional financial advisor assistant that specializes in creating concise executive summaries.",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+    except Exception as e:
+        logger.warning(f"Error with first model attempt: {str(e)}. Trying with claude-3-haiku.")
         try:
-            # Send the prompt to Claude
-            message = client.messages.create(
-                model="claude-3-opus-20240229",  # Try with this model first
-                max_tokens=500,
-                temperature=0.3,
-                system="You are a professional financial advisor assistant that specializes in creating concise executive summaries.",
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
-        except Exception as e:
-            logger.warning(f"Error with first model attempt: {str(e)}. Trying with claude-3-haiku.")
             # Try with a different model
             message = client.messages.create(
                 model="claude-3-haiku-20240307",
@@ -74,46 +70,63 @@ def generate_executive_summary(digest: AdvisorDigest) -> str:
                     {"role": "user", "content": prompt}
                 ]
             )
+        except Exception as e2:
+            logger.error(f"Error generating executive summary: {str(e2)}")
+            return f"Daily digest for {digest.date} with {digest.summary_stats['total_notifications']} notifications requiring your attention."
         
-        # Extract the summary from the response
-        summary = message.content[0].text
-        logger.info(f"Generated executive summary for advisor {digest.advisor_id}")
-        return summary
+    # Extract the summary from the response
+    summary = message.content[0].text
+    logger.info(f"Generated executive summary for advisor {digest.advisor_id}")
+    return summary
         
-    except Exception as e:
-        logger.error(f"Error generating executive summary: {str(e)}")
-        # Fallback to a generic summary
-        return f"Daily digest for {digest.date} with {digest.summary_stats['total_notifications']} notifications requiring your attention."
-
 def generate_insights(digest: AdvisorDigest) -> List[AIInsight]:
-    """
-    Generate AI insights for a digest using Claude Sonnet
+    """Generate AI insights for the digest"""
+    logger.info(f"Generating AI insights for advisor {digest.advisor_id}")
     
-    Args:
-        digest: The advisor digest to analyze
-        
-    Returns:
-        List of AIInsight objects
-    """
     # Initialize client if needed
     if not client and not _initialize_client():
         logger.warning("ANTHROPIC_API_KEY not set, skipping AI insights generation")
-        return []
+        return [
+            AIInsight(
+                title="High Priority Margin Calls",
+                content="There are several high priority margin calls that require immediate attention.",
+                recommendation="Contact clients with margin calls due in the next 48 hours.",
+                related_clients=[call.client_name for call in digest.margin_calls if call.priority >= 2],
+                priority=5
+            ),
+            AIInsight(
+                title="Retirement Contribution Summary",
+                content="Several clients have made retirement contributions that may have tax implications.",
+                recommendation="Review retirement planning strategies with these clients.",
+                related_clients=[contrib.client_name for contrib in digest.retirement_contributions],
+                priority=3
+            )
+        ]
     
-    logger.info(f"Generating AI insights for advisor {digest.advisor_id}")
+    # Create a summary of the digest for AI processing
+    digest_summary = _create_digest_summary(digest)
+    # Note: digest_summary is already masked by _create_digest_summary
     
+    # Create the prompt
+    prompt = _create_claude_prompt(digest.advisor_name, digest_summary)
+        
+    # Call Claude Sonnet
     try:
-        # Create a structured digest summary for Claude
-        digest_summary = _create_digest_summary(digest)
-        
-        # Create the prompt for Claude
-        prompt = _create_claude_prompt(digest.advisor_name, digest_summary)
-        
-        # Call Claude Sonnet
+        # Use a valid Claude model name
+        response = client.messages.create(
+            model="claude-3-opus-20240229",  # Try with a valid model
+            max_tokens=2000,
+            temperature=0.3,
+            system="You are a financial advisor assistant. Analyze the financial digest data and provide valuable insights and recommendations.",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+    except Exception as e:
+        logger.warning(f"Error with first model attempt: {str(e)}. Trying with claude-3-haiku.")
         try:
-            # Use a valid Claude model name
             response = client.messages.create(
-                model="claude-3-opus-20240229",  # Try with a valid model
+                model="claude-3-haiku-20240307",  # Fallback to another model
                 max_tokens=2000,
                 temperature=0.3,
                 system="You are a financial advisor assistant. Analyze the financial digest data and provide valuable insights and recommendations.",
@@ -121,58 +134,41 @@ def generate_insights(digest: AdvisorDigest) -> List[AIInsight]:
                     {"role": "user", "content": prompt}
                 ]
             )
-        except Exception as e:
-            logger.warning(f"Error with first model attempt: {str(e)}. Trying with claude-3-haiku.")
-            try:
-                response = client.messages.create(
-                    model="claude-3-haiku-20240307",  # Fallback to another model
-                    max_tokens=2000,
-                    temperature=0.3,
-                    system="You are a financial advisor assistant. Analyze the financial digest data and provide valuable insights and recommendations.",
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ]
+        except Exception as e2:
+            logger.error(f"Error with second model attempt: {str(e2)}. Generating generic insights.")
+            # Return generic insights if API calls fail
+            return [
+                AIInsight(
+                    title="High Priority Margin Calls",
+                    content="There are several high priority margin calls that require immediate attention.",
+                    recommendation="Contact clients with margin calls due in the next 48 hours.",
+                    related_clients=[call.client_name for call in digest.margin_calls if call.priority >= 4],
+                    priority=5
+                ),
+                AIInsight(
+                    title="Retirement Contribution Summary",
+                    content="Several clients have made retirement contributions that may have tax implications.",
+                    recommendation="Review retirement planning strategies with these clients.",
+                    related_clients=[contrib.client_name for contrib in digest.retirement_contributions],
+                    priority=3
                 )
-            except Exception as e2:
-                logger.error(f"Error with second model attempt: {str(e2)}. Generating generic insights.")
-                # Return generic insights if API calls fail
-                return [
-                    AIInsight(
-                        title="High Priority Margin Calls",
-                        content="There are several high priority margin calls that require immediate attention.",
-                        recommendation="Contact clients with margin calls due in the next 48 hours.",
-                        related_clients=[call.client_name for call in digest.margin_calls if call.priority >= 4],
-                        priority=5
-                    ),
-                    AIInsight(
-                        title="Retirement Contribution Summary",
-                        content="Several clients have made retirement contributions that may have tax implications.",
-                        recommendation="Review retirement planning strategies with these clients.",
-                        related_clients=[contrib.client_name for contrib in digest.retirement_contributions],
-                        priority=3
-                    )
-                ]
+            ]
         
-        # Process Claude's response
-        insights = _parse_claude_response(response.content[0].text)
+    # Process Claude's response
+    insights = _parse_claude_response(response.content[0].text)
         
-        logger.info(f"Generated {len(insights)} AI insights for advisor {digest.advisor_id}")
-        return insights
+    logger.info(f"Generated {len(insights)} AI insights for advisor {digest.advisor_id}")
+    return insights
         
-    except Exception as e:
-        logger.error(f"Error generating AI insights: {str(e)}")
-        return []
-
 def _create_digest_summary(digest: AdvisorDigest) -> Dict[str, Any]:
-    """Create a structured summary of the digest for Claude"""
+    """Create a summary of the digest for AI processing"""
     summary = {
-        "advisor": {
-            "id": digest.advisor_id,
-            "name": digest.advisor_name
-        },
+        "advisor_id": digest.advisor_id,
+        "advisor_name": digest.advisor_name,
         "date": str(digest.date),
         "margin_calls": [
             {
+                "client_id": call.client_id,
                 "client_name": call.client_name,
                 "account_number": call.account_number,
                 "call_amount": call.call_amount,
@@ -185,6 +181,7 @@ def _create_digest_summary(digest: AdvisorDigest) -> Dict[str, Any]:
         ],
         "retirement_contributions": [
             {
+                "client_id": contrib.client_id,
                 "client_name": contrib.client_name,
                 "account_number": contrib.account_number,
                 "contribution_amount": contrib.contribution_amount,
@@ -196,8 +193,10 @@ def _create_digest_summary(digest: AdvisorDigest) -> Dict[str, Any]:
         ],
         "corporate_actions": [
             {
+                "client_id": action.client_id,
                 "client_name": action.client_name,
                 "account_number": action.account_number,
+                "security_id": action.security_id,
                 "security_name": action.security_name,
                 "action_type": action.action_type,
                 "deadline_date": str(action.deadline_date),
@@ -208,6 +207,7 @@ def _create_digest_summary(digest: AdvisorDigest) -> Dict[str, Any]:
         ],
         "outgoing_account_transfers": [
             {
+                "client_id": transfer.client_id,
                 "client_name": transfer.client_name,
                 "account_number": transfer.account_number,
                 "account_type": transfer.account_type,
@@ -225,26 +225,73 @@ def _create_digest_summary(digest: AdvisorDigest) -> Dict[str, Any]:
         "summary_stats": digest.summary_stats
     }
     
-    return summary
+    # Mask sensitive data before returning
+    masked_summary = mask_sensitive_data(summary)
+    return masked_summary
 
 def _create_executive_summary_prompt(advisor_name: str, digest_summary: Dict[str, Any]) -> str:
-    """Create the prompt for generating an executive summary"""
+    """Create an enhanced prompt for generating a financial advisor's executive summary"""
+    
+    # Extract key statistics for the prompt
+    stats = digest_summary["summary_stats"]
+    total_notifications = stats["total_notifications"]
+    margin_call_count = stats["margin_calls"]["count"]
+    high_priority_margin_calls = stats["margin_calls"]["high_priority_count"]
+    total_margin_amount = stats["margin_calls"]["total_amount"]
+    
+    # Count critical and high priority items
+    critical_transfers = sum(1 for transfer in digest_summary["outgoing_account_transfers"] 
+                           if transfer.get("priority") == 1)
+    high_priority_items = high_priority_margin_calls + sum(1 for action in digest_summary["corporate_actions"] 
+                                                         if action.get("priority") >= 4)
+    
+    # Find upcoming deadlines
+    upcoming_deadlines = []
+    
+    # Check for upcoming corporate action deadlines
+    for action in digest_summary["corporate_actions"]:
+        if "deadline_date" in action:
+            upcoming_deadlines.append(f"{action['client_name']}'s {action['action_type']} for {action['security_name']} (due {action['deadline_date']})")
+    
+    # Check for upcoming margin call due dates
+    for call in digest_summary["margin_calls"]:
+        if "due_date" in call:
+            upcoming_deadlines.append(f"{call['client_name']}'s margin call for ${call['call_amount']:,.2f} (due {call['due_date']})")
+    
+    # Limit to top 3 deadlines
+    upcoming_deadlines = upcoming_deadlines[:3]
+    
     prompt = f"""
-    Hello! I need your help creating a concise executive summary for advisor {advisor_name}'s daily financial digest.
+    You are a senior financial analyst creating a concise, high-value executive summary for {advisor_name}, a busy financial advisor who needs to quickly understand today's most important client issues.
     
-    Here's the digest data in JSON format:
+    TODAY'S KEY STATISTICS:
+    • Total notifications: {total_notifications}
+    • Margin calls: {margin_call_count} ({high_priority_margin_calls} high priority)
+    • Total margin call amount: ${total_margin_amount:,.2f}
+    • Critical outgoing transfers: {critical_transfers}
+    • High priority items: {high_priority_items}
+    • Upcoming deadlines: {len(upcoming_deadlines)}
     
+    DIGEST DATA:
     {json.dumps(digest_summary, indent=2)}
     
-    Please write a brief, professional executive summary (3-5 sentences) that highlights:
-    1. The total number of notifications and their breakdown by type
-    2. Any high-priority items that need immediate attention (especially margin calls or outgoing transfers)
-    3. Key deadlines or time-sensitive actions
-    4. The most significant financial implications
+    Write a concise, actionable executive summary (max 150 words) that:
     
-    Make the summary personalized, addressing {advisor_name} directly. Focus on actionable information and use a professional, concise tone suitable for a busy financial advisor.
+    1. Starts with a personalized greeting to {advisor_name}
+    2. Prioritizes information in this order:
+       a. Critical items requiring IMMEDIATE action (priority 1)
+       b. High priority items (priorities 2-3)
+       c. Medium priority items (priorities 4-7)
+    3. For each high-priority item, include:
+       - Client name
+       - Specific dollar amounts
+       - Exact deadlines
+       - Required action
+    4. Highlight any unusual patterns or concerning trends
+    5. End with a brief, forward-looking recommendation
     
-    Do not format as JSON, just provide the summary as plain text.
+    Use a professional, direct tone. Avoid generic statements - be specific and data-driven.
+    Format as a cohesive paragraph (not bullet points or JSON).
     """
     return prompt
 

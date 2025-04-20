@@ -106,7 +106,7 @@ def _generate_summary_stats(digest: AdvisorDigest) -> Dict[str, Any]:
         "margin_calls": {
             "count": len(digest.margin_calls),
             "total_amount": sum(call.call_amount for call in digest.margin_calls),
-            "high_priority_count": sum(1 for call in digest.margin_calls if call.priority >= 4)
+            "high_priority_count": sum(1 for call in digest.margin_calls if call.priority >= 2)
         },
         "retirement_contributions": {
             "count": len(digest.retirement_contributions),

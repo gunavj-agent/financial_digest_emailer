@@ -15,6 +15,7 @@ A system that processes multiple financial email notifications, organizes them b
 - **Executive Summaries**: AI-generated concise overviews of the most important information
 - **Email Delivery**: Sends formatted HTML emails to recipients
 - **Secure Authentication**: API endpoints protected with authentication
+- **Data Privacy Protection**: Masks sensitive client information (account numbers, client IDs, names) before sending to LLMs
 
 ## 📋 Architecture
 
@@ -27,27 +28,29 @@ A system that processes multiple financial email notifications, organizes them b
 | - JSON Email Data           |        | - Email Processor      |        | - Email Formatter      |
 | - Margin Calls              | -----> | - Recipient Grouper    | -----> | - HTML Templates       |
 | - Retirement Contributions  |        | - Digest Builder       |        | - SMTP Delivery        |
-| - Corporate Actions         |        +------------------------+        +------------------------+
-| - Outgoing Account Transfers|                 |                                  |
-+-----------------------------+                 v                                  v
-                                    +------------------------+        +------------------------+
-                                    |    AI Processing*      |        |       Recipients       |
-                                    +------------------------+        +------------------------+
-                                    | - Executive Summary*   | -----> | - Financial Advisors   |
-                                    | - AI Insights          |        |                        |
-                                    +------------------------+        +------------------------+
-                                                |
-                                                v
-                                    +------------------------+
-                                    |  Environment & Storage |
-                                    +------------------------+
-                                    | - .env Configuration   |
-                                    | - Processed Data       |
-                                    | - Email Templates      |
-                                    +------------------------+
+| - Corporate Actions         |        | - Data Masking*        |        +------------------------+
+| - Outgoing Account Transfers|        +------------------------+                  |
++-----------------------------+                 |                                  v
+                                                 v                       +------------------------+
+                                     +------------------------+        |       Recipients       |
+                                     |    AI Processing       |        +------------------------+
+                                     +------------------------+        | - Financial Advisors   |
+                                     | - Executive Summary    | -----> |                        |
+                                     | - AI Insights          |        +------------------------+
+                                     | - Privacy Protection*  |
+                                     +------------------------+
+                                                 |
+                                                 v
+                                     +------------------------+
+                                     |  Environment & Storage |
+                                     +------------------------+
+                                     | - .env Configuration   |
+                                     | - Processed Data       |
+                                     | - Email Templates      |
+                                     +------------------------+
 ```
 
-*Note: Components marked with * are new features added to the system.
+*Note: Components marked with * are new features added to the system. The Data Masking and Privacy Protection features ensure sensitive client information is masked before being sent to external AI services.
 
 
 

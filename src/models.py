@@ -108,7 +108,7 @@ class AdvisorDigest(BaseModel):
     def has_high_priority(self) -> bool:
         """Check if digest contains any high priority items"""
         for call in self.margin_calls:
-            if call.priority >= 4:
+            if call.priority >= 2:
                 return True
         for action in self.corporate_actions:
             if action.priority >= 4:
