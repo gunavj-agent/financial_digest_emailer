@@ -22,29 +22,29 @@ A system that processes multiple financial email notifications, organizes them b
 
 ```mermaid
 flowchart TD
-    A[Email Data Sources<br/>(JSON, Margin Calls, Retirement,<br/>Corp. Actions, Outgoing Transfers)] -->|Batch Upload/API| B[Email Processor<br/>(email_processor.py)]
-    B --> C[Recipient Grouper<br/>(by Advisor)]
-    C --> D[Digest Builder<br/>(digest_builder.py)]
+    A[Email Data Sources<br/>JSON, Margin Calls, Retirement,<br/>Corp. Actions, Outgoing Transfers] -->|Batch Upload/API| B[Email Processor<br/>email_processor.py]
+    B --> C[Recipient Grouper<br/>by Advisor]
+    C --> D[Digest Builder<br/>digest_builder.py]
     
-    subgraph "AI Processing"
-        E1[AI Executive Summary<br/>(generate_executive_summary)]
-        E2[AI Insights<br/>(generate_insights)]
+    subgraph AI_Processing["AI Processing"]
+        E1[AI Executive Summary<br/>generate_executive_summary]
+        E2[AI Insights<br/>generate_insights]
     end
     
     D --> E1
     D --> E2
     
-    E1 --> F[Email Formatter<br/>(Jinja2 HTML Template)]
+    E1 --> F[Email Formatter<br/>Jinja2 HTML Template]
     E2 --> F
     
-    F --> G[Email Sender<br/>(email_sender.py)]
-    G -->|SMTP| H[Email Server<br/>(Gmail: smtp.gmail.com)]
-    H --> I[Advisor Inbox<br/>(Financial Advisor)]
+    F --> G[Email Sender<br/>email_sender.py]
+    G -->|SMTP| H[Email Server<br/>Gmail: smtp.gmail.com]
+    H --> I[Advisor Inbox<br/>Financial Advisor]
 
-    subgraph "Environment & Storage"
-        J1[.env File<br/>(API Keys, SMTP Credentials)]
-        J2[Storage<br/>(Processed Data,<br/>Digest History)]
-        J3[Templates<br/>(base_digest.html)]
+    subgraph Env_Storage["Environment & Storage"]
+        J1[.env File<br/>API Keys, SMTP Credentials]
+        J2[Storage<br/>Processed Data,<br/>Digest History]
+        J3[Templates<br/>base_digest.html]
     end
     
     J1 -.->|Config| B
