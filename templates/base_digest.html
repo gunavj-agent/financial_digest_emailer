@@ -126,8 +126,17 @@
             background-color: #3498db;
             color: white;
         }
-        .priority-badge.high {
+        .priority-badge.critical {
             background-color: #e74c3c;
+            color: #fff;
+        }
+        .priority-badge.high {
+            background-color: #ffb300;
+            color: #333;
+        }
+        .priority-badge.medium {
+            background-color: #3498db;
+            color: #fff;
         }
         .insight-card {
             background-color: #f8f9fa;
@@ -196,109 +205,10 @@
             </div>
         </div>
 
-        {% if margin_calls %}
-        <div class="section">
-            <h2 class="section-title">Margin Calls</h2>
-            {% for call in margin_calls %}
-            <div class="card {% if call.priority >= 4 %}high-priority{% endif %}">
-                <div class="card-header">
-                    <h3 class="card-title">{{ call.client_name }}</h3>
-                    <span class="card-amount">${{ "{:,.2f}".format(call.call_amount) }}</span>
-                </div>
-                <div class="card-meta">
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Account:</span>
-                        <span>{{ call.account_number }}</span>
-                    </div>
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Due Date:</span>
-                        <span>{{ call.due_date }}</span>
-                    </div>
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Current:</span>
-                        <span>{{ call.current_margin_percentage }}%</span>
-                    </div>
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Required:</span>
-                        <span>{{ call.required_margin_percentage }}%</span>
-                    </div>
-                </div>
-                <div>
-                    <span class="priority-badge {% if call.priority >= 4 %}high{% endif %}">
-                        {% if call.priority >= 4 %}High Priority{% else %}Priority {{ call.priority }}{% endif %}
-                    </span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if retirement_contributions %}
-        <div class="section">
-            <h2 class="section-title">Retirement Contributions</h2>
-            {% for contrib in retirement_contributions %}
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">{{ contrib.client_name }}</h3>
-                    <span class="card-amount">${{ "{:,.2f}".format(contrib.contribution_amount) }}</span>
-                </div>
-                <div class="card-meta">
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Account:</span>
-                        <span>{{ contrib.account_number }}</span>
-                    </div>
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Type:</span>
-                        <span>{{ contrib.contribution_type }}</span>
-                    </div>
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Tax Year:</span>
-                        <span>{{ contrib.tax_year }}</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if corporate_actions %}
-        <div class="section">
-            <h2 class="section-title">Corporate Actions</h2>
-            {% for action in corporate_actions %}
-            <div class="card {% if action.priority >= 4 %}high-priority{% endif %}">
-                <div class="card-header">
-                    <h3 class="card-title">{{ action.client_name }}</h3>
-                    <span>{{ action.security_name }}</span>
-                </div>
-                <div class="card-meta">
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Account:</span>
-                        <span>{{ action.account_number }}</span>
-                    </div>
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Type:</span>
-                        <span>{{ action.action_type }}</span>
-                    </div>
-                    <div class="card-meta-item">
-                        <span class="card-meta-label">Deadline:</span>
-                        <span>{{ action.deadline_date }}</span>
-                    </div>
-                </div>
-                <p>{{ action.description }}</p>
-                <div>
-                    <span class="priority-badge {% if action.priority >= 4 %}high{% endif %}">
-                        {% if action.priority >= 4 %}High Priority{% else %}Priority {{ action.priority }}{% endif %}
-                    </span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
         {% if outgoing_account_transfers %}
         <div class="section">
             <h2 class="section-title">Outgoing Account Transfers</h2>
-            {% for transfer in outgoing_account_transfers %}
+            {% for transfer in outgoing_account_transfers|sort(attribute='priority', reverse=true) %}
             <div class="card {% if transfer.priority >= 4 %}high-priority{% endif %}">
                 <div class="card-header">
                     <h3 class="card-title">{{ transfer.client_name }}</h3>
@@ -334,9 +244,108 @@
                 </div>
                 <p>{{ transfer.description }}</p>
                 <div>
-                    <span class="priority-badge {% if transfer.priority >= 4 %}high{% endif %}">
-                        {% if transfer.priority >= 4 %}High Priority{% else %}Priority {{ transfer.priority }}{% endif %}
-                    </span>
+                    <span class="priority-badge {% if transfer.priority == 1 %}critical{% elif transfer.priority >= 4 %}high{% endif %}">
+    {% if transfer.priority == 1 %}Critical{% elif transfer.priority >= 4 %}High Priority{% else %}Priority {{ transfer.priority }}{% endif %}
+</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if margin_calls %}
+        <div class="section">
+            <h2 class="section-title">Margin Calls</h2>
+            {% for call in margin_calls|sort(attribute='priority', reverse=true) %}
+            <div class="card {% if call.priority >= 4 %}high-priority{% endif %}">
+                <div class="card-header">
+                    <h3 class="card-title">{{ call.client_name }}</h3>
+                    <span class="card-amount">${{ "{:,.2f}".format(call.call_amount) }}</span>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account:</span>
+                        <span>{{ call.account_number }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Due Date:</span>
+                        <span>{{ call.due_date }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Current:</span>
+                        <span>{{ call.current_margin_percentage }}%</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Required:</span>
+                        <span>{{ call.required_margin_percentage }}%</span>
+                    </div>
+                </div>
+                <div>
+                    <span class="priority-badge medium">
+    High Priority
+</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if corporate_actions %}
+        <div class="section">
+            <h2 class="section-title">Corporate Actions</h2>
+            {% for action in corporate_actions|sort(attribute='priority', reverse=true) %}
+            <div class="card {% if action.priority >= 4 %}high-priority{% endif %}">
+                <div class="card-header">
+                    <h3 class="card-title">{{ action.client_name }}</h3>
+                    <span>{{ action.security_name }}</span>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account:</span>
+                        <span>{{ action.account_number }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Type:</span>
+                        <span>{{ action.action_type }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Deadline:</span>
+                        <span>{{ action.deadline_date }}</span>
+                    </div>
+                </div>
+                <p>{{ action.description }}</p>
+                <div>
+                    <span class="priority-badge high">
+    Medium Priority
+</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if retirement_contributions %}
+        <div class="section">
+            <h2 class="section-title">Retirement Contributions</h2>
+            {% for contrib in retirement_contributions %}
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{{ contrib.client_name }}</h3>
+                    <span class="card-amount">${{ "{:,.2f}".format(contrib.contribution_amount) }}</span>
+                </div>
+                <div class="card-meta">
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Account:</span>
+                        <span>{{ contrib.account_number }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Type:</span>
+                        <span>{{ contrib.contribution_type }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="card-meta-label">Tax Year:</span>
+                        <span>{{ contrib.tax_year }}</span>
+                    </div>
                 </div>
             </div>
             {% endfor %}

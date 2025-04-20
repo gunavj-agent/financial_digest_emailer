@@ -38,7 +38,7 @@ class MarginCall(BaseModel):
     current_margin_percentage: float
     required_margin_percentage: float
     timestamp: datetime
-    priority: int = 5  # Default high priority
+    priority: int = 10  # Critical priority (Outgoing Account Transfer)
 
 class RetirementContribution(BaseModel):
     """Model for retirement contribution notifications"""
@@ -50,7 +50,7 @@ class RetirementContribution(BaseModel):
     contribution_type: str  # e.g., "401k", "IRA", etc.
     tax_year: int
     timestamp: datetime
-    priority: int = 3  # Default medium priority
+    priority: int = 4  # Medium priority (Retirement Contribution)
 
 class CorporateAction(BaseModel):
     """Model for voluntary corporate action notifications"""
@@ -64,7 +64,7 @@ class CorporateAction(BaseModel):
     deadline_date: date
     description: str
     timestamp: datetime
-    priority: int = 4  # Default medium-high priority
+    priority: int = 6  # Medium-high priority (Corporate Action)
 
 class OutgoingAccountTransfer(BaseModel):
     """Model for outgoing account transfer notifications"""
@@ -81,7 +81,7 @@ class OutgoingAccountTransfer(BaseModel):
     status: str
     description: str
     timestamp: datetime
-    priority: int = 5  # Default high priority
+    priority: int = 10  # Critical priority (Outgoing Account Transfer)
 
 class AIInsight(BaseModel):
     """Model for AI-generated insights"""

@@ -28,7 +28,7 @@ logger = logging.getLogger("direct_test")
 load_dotenv()
 
 # Explicitly set environment variables for testing
-os.environ["ANTHROPIC_API_KEY"] = "dummy123"
+
 os.environ["SMTP_SERVER"] = "smtp.gmail.com"
 os.environ["SMTP_PORT"] = "587"
 os.environ["SMTP_USERNAME"] = "gunasekaran.jayagopal@gmail.com"
