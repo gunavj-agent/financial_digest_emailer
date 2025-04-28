@@ -231,21 +231,26 @@ def _create_digest_summary(digest: AdvisorDigest) -> Dict[str, Any]:
 
 def _create_executive_summary_prompt(advisor_name: str, digest_summary: Dict[str, Any]) -> str:
     """Create an enhanced prompt for generating a financial advisor's executive summary"""
-    
-    # Extract key statistics for the prompt
+    # Extract key metrics
     stats = digest_summary["summary_stats"]
     total_notifications = stats["total_notifications"]
-    margin_call_count = stats["margin_calls"]["count"]
-    high_priority_margin_calls = stats["margin_calls"]["high_priority_count"]
-    total_margin_amount = stats["margin_calls"]["total_amount"]
     
-    # Count critical and high priority items
-    critical_transfers = sum(1 for transfer in digest_summary["outgoing_account_transfers"] 
-                           if transfer.get("priority") == 1)
-    high_priority_items = high_priority_margin_calls + sum(1 for action in digest_summary["corporate_actions"] 
-                                                         if action.get("priority") >= 4)
+    # Get total unique clients (calculated from all notification types)
+    client_ids = set()
+    for category in ["margin_calls", "retirement_contributions", "corporate_actions", "outgoing_account_transfers"]:
+        for item in digest_summary[category]:
+            if "client_id" in item:
+                client_ids.add(item["client_id"])
+    total_clients = len(client_ids)
     
-    # Find upcoming deadlines
+    # Get highest priority item
+    highest_priority = 0
+    for category in ["margin_calls", "retirement_contributions", "corporate_actions", "outgoing_account_transfers"]:
+        for item in digest_summary[category]:
+            if "priority" in item and item["priority"] > highest_priority:
+                highest_priority = item["priority"]
+    
+    # Prepare lists of upcoming deadlines
     upcoming_deadlines = []
     
     # Check for upcoming corporate action deadlines
@@ -262,75 +267,86 @@ def _create_executive_summary_prompt(advisor_name: str, digest_summary: Dict[str
     upcoming_deadlines = upcoming_deadlines[:3]
     
     prompt = f"""
-    You are a senior financial analyst creating a concise, high-value executive summary for {advisor_name}, a busy financial advisor who needs to quickly understand today's most important client issues.
-    
-    TODAY'S KEY STATISTICS:
-    • Total notifications: {total_notifications}
-    • Margin calls: {margin_call_count} ({high_priority_margin_calls} high priority)
-    • Total margin call amount: ${total_margin_amount:,.2f}
-    • Critical outgoing transfers: {critical_transfers}
-    • High priority items: {high_priority_items}
-    • Upcoming deadlines: {len(upcoming_deadlines)}
-    
+    As a professional financial advisor assistant, create a concise yet comprehensive executive summary for {advisor_name}'s daily digest.
+
+    CONTEXT:
+    - You have {total_notifications} notifications across {total_clients} clients
+    - The highest priority item is rated {highest_priority}/10
+    - Key upcoming deadlines: {'; '.join(upcoming_deadlines) if upcoming_deadlines else 'None'}
+
     DIGEST DATA:
     {json.dumps(digest_summary, indent=2)}
-    
-    Write a concise, actionable executive summary (max 150 words) that:
-    
-    1. Starts with a personalized greeting to {advisor_name}
-    2. Prioritizes information in this order:
-       a. Critical items requiring IMMEDIATE action (priority 1)
-       b. High priority items (priorities 2-3)
-       c. Medium priority items (priorities 4-7)
-    3. For each high-priority item, include:
-       - Client name
-       - Specific dollar amounts
-       - Exact deadlines
-       - Required action
-    4. Highlight any unusual patterns or concerning trends
-    5. End with a brief, forward-looking recommendation
-    
-    Use a professional, direct tone. Avoid generic statements - be specific and data-driven.
-    Format as a cohesive paragraph (not bullet points or JSON).
+
+    INSTRUCTIONS:
+    1. Begin with a professional greeting addressing {advisor_name} directly
+    2. Provide a concise 2-3 sentence overview of today's key priorities
+    3. Highlight the most urgent items requiring immediate attention (next 48 hours)
+    4. Mention any significant financial trends or patterns across clients
+    5. End with a clear, actionable next step recommendation
+
+    REQUIREMENTS:
+    - Keep the summary under 200 words
+    - Use professional, clear financial language
+    - Focus on actionable insights rather than just listing data
+    - Prioritize information based on urgency and financial impact
+    - Maintain a confident, authoritative tone
+    - Do not mention that this summary was AI-generated
+
+    NOTE: All sensitive client information has been masked for privacy and security. Do not attempt to reconstruct or infer actual identities or account details.
     """
     return prompt
 
 def _create_claude_prompt(advisor_name: str, digest_summary: Dict[str, Any]) -> str:
     """Create the prompt for Claude"""
     prompt = f"""
-    Hello! I need your help analyzing a financial digest for advisor {advisor_name}.
+    You are a professional financial analyst assistant for {advisor_name}. Analyze this financial digest and generate actionable insights.
     
-    Here's the digest data in JSON format:
-    
+    DIGEST DATA (JSON):
     {json.dumps(digest_summary, indent=2)}
     
-    Based on this data, please provide:
+    ANALYSIS REQUIREMENTS:
+    1. Identify 3-5 high-value insights from this data that would be most valuable to a financial advisor
+    2. Prioritize time-sensitive issues requiring immediate action (next 48-72 hours)
+    3. Focus on high-risk areas: margin calls, outgoing transfers, and approaching deadlines
+    4. Detect patterns across client portfolios that may indicate market trends or systemic issues
+    5. Identify compliance risks or regulatory concerns that require attention
     
-    1. 2-3 key insights about the advisor's clients and their financial situations
-    2. Specific recommendations for the advisor to take action on, especially regarding any outgoing account transfers that need attention
-    3. Any patterns or trends you notice across the different notification types (margin calls, retirement contributions, corporate actions, and outgoing account transfers)
-    4. Highlight any potential risks or compliance issues and suggest ways to address them, particularly for high-priority outgoing account transfers
-    5. Support your insights with specific numbers or trends from the data whenever possible
-    6. Write each insight and recommendation clearly and concisely
+    INSIGHT CATEGORIES TO INCLUDE:
+    - URGENT: At least one insight about immediate action items (next 24-48 hours)
+    - TRANSFERS: If outgoing account transfers exist (especially with status "Next 5 business days - Review Required" or high-priority), provide specific analysis
+    - MARGIN CALLS: Analyze margin call patterns, risk levels, and recommended interventions
+    - CLIENT PATTERNS: Identify behavioral or financial patterns across multiple clients
+    - OPPORTUNITY: Highlight potential revenue or relationship-building opportunities
     
-    IMPORTANT: Make sure to include at least one insight specifically about the outgoing account transfers if any are present, especially those with status "Next 5 business days - Review Required" or any high-priority transfers.
+    PATTERN OBSERVATIONS TO CONSIDER:
+    - CONCENTRATION RISK: Identify clients with multiple high-priority notifications across different categories
+    - TIMING PATTERNS: Note if multiple deadlines/actions cluster around specific dates
+    - RECURRING ISSUES: Flag clients with repeated margin calls or similar issues over time
+    - PORTFOLIO VULNERABILITY: Identify clients with both margin calls and outgoing transfers
+    - LIQUIDITY CONCERNS: Note patterns of outgoing transfers that may impact account liquidity
+    - RETIREMENT PLANNING GAPS: Identify clients with retirement contributions below optimal levels
+    - CORPORATE ACTION IMPACT: Assess how corporate actions might affect overall client portfolios
+    - SEASONAL TRENDS: Note if current activity aligns with typical seasonal financial patterns
+    - COMPLIANCE RED FLAGS: Identify patterns that may indicate regulatory or compliance risks
     
-    Format your response as a JSON array with the following structure for each insight:
-    
+    FORMAT INSTRUCTIONS:
+    Return ONLY a JSON array with 3-5 insights using this exact structure:
     [
       {{
-        "title": "Brief title of the insight",
-        "content": "Detailed explanation of the insight",
-        "recommendation": "Specific action the advisor should take",
-        "related_clients": ["List of client names this relates to"],
+        "title": "Clear, specific insight title (5-8 words)",
+        "content": "Detailed explanation with specific data points and analysis (2-4 sentences)",
+        "recommendation": "Precise, actionable next step the advisor should take (1-2 sentences)",
+        "related_clients": ["List of affected client names"],
         "priority": priority_level (1-10, with 10 being highest)
       }},
       ...
     ]
     
-    Only return the JSON array, nothing else.
-    """
+    SECURITY NOTICE:
+    All sensitive client information has been masked for privacy and security. Do not attempt to reconstruct or infer actual identities, account numbers or other sensitive data. Your analysis must maintain client confidentiality.
     
+    Return only the properly formatted JSON array with no additional text.
+    """
     return prompt
 
 def _parse_claude_response(response_text: str) -> List[AIInsight]:
